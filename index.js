@@ -17,16 +17,16 @@ const router = express.Router();
 
 router.post("/create", async (req, res) => {
     try {
-        const newBarco = new barco(req,body);
+        const newBarco = new Barco(req, body);
         console.log(newBarco);
         await newBarco.save();
         return res.status(201).json(newBarco);
     }   catch(error){
-        return res.status(400).json("Error creating new Barco");
+        return res.status(400).json("Error creating Barco");
     }    
 });
 
-router.get("/barco", async (req, res) => {
+router.get("/barcos", async (req, res) => {
     try {
         const barcos = await Barco.find();
         return res.status(200).json(barcos);
