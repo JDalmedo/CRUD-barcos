@@ -6,6 +6,7 @@ dotenv.config();
 const connect = require("./utils/db");
 
 const Barco = require("./models/barco.model");
+const Docked = require("./models/docked.model");
 
 const server = express();
 connect();
@@ -19,18 +20,18 @@ router.get("/barcos", async (req, res) => {
         const barcos = await Barco.find();
         return res.status(200).json(barcos);
     } catch (error) {
-        return res.status(400).json("Barcos not found");
+        return res.status(404).json("Barcos not found", error);
       }
 });
-router.get("barcos/:id", async (req, res) => {
-    try{
-        const { id } = req.params;
-        const barco = await Barco.findById(id);
-        return res.status(200).json(barco);
-      } catch (error) {
-        return res.status(404).json("Barco not found");
-      } 
-    });
+
+router.get("/docked", async (req, res) => {
+  try {
+      const docked = await Docked.find().populate('barcos');
+      return res.status(200).json(docked);
+  } catch (error) {
+      return res.status(404).json("Docked barcos not found", error);
+    }
+});
 
 router.post("/barcos", async (req, res) => {
     try {
@@ -38,29 +39,58 @@ router.post("/barcos", async (req, res) => {
         await newBarco.save();
         return res.status(201).json(newBarco);
     }   catch(error){
-        return res.status(500).json("Error creating Barco");
+        return res.status(500).json("Error creating Barco", error);
     }    
 });
 
-router.delete("/barcos/:id", async (req, res) => {
-    try {
-        const { id } = req.params;
-        const barco = await Barco.findByIdAndDelete(id);
-        return res.status(200).json(barco);
-      } catch(error){
-        return res.status(500).json("Error deleting Barco");
-      }
-
+router.post("/docked", async (req, res) => {
+  try{
+      const newDocked = new Docked(req.body);
+      await newDocked.save();
+      return res.status(201).json(newDocked);
+    } catch (error) {
+      return res.status(500).json("Failed creating docked barco", error);
+    } 
 });
 
-router.patch("/barcos/:id", async (req, res) => {
+router.get("/imo", async (req, res) => {
     try {
-        const {id} = req.params;
-        const barco = await Barco.findByIdAndUpdate(id);
-        return res.status(200).json(barco);
-      } catch(error){
-        return res.status(500).json("Error updating Barco");
-      }
+      const docked = await Docked.findOne({ name: "IMO" }).populate(
+        "barcos"
+      );
+      return res.status(200).json(docked);
+    } catch (error) {
+      return res.status(404).json("Barco not found", error);
+    }
+});
+
+router.get("/search/:name", async (req, res) => {
+  try {
+    const name = req.params;
+    const docked = await Docked.findOne({ name: name }).populate(
+      "barcos");
+    return res.status(200).json(docked);
+  } catch (error) {
+    return res.status(404).json("Docked barco not found", error);
+  }
+});
+
+router.get("/barcos/optimum", async (req, res) => {
+  try {
+    const barcos = await Barco.find({ quantity: { $gt: 20 } });
+    return res.status(200).json(barcos);
+  } catch (error) {
+    return res.status(404).json("Barcos not found", error);
+  }
+});
+
+router.get("/barcos/ordered", async (req, res) => {
+  try {
+    const barcos = await Barco.find().sort({ quality: -1 });
+    return res.status(200).json(barcos);
+  } catch (error) {
+    return res.status(404).json("Barcos not found", error);
+  }
 });
 
 server.use("/", router);
